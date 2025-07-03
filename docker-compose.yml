@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  lucid-ics:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - LUCID_EMAIL=${LUCID_EMAIL}
+      - LLM_MODEL=${LLM_MODEL:-openai/gpt-4o-mini}
+      - PORT=3000
+    volumes:
+      - ./data:/app/data
+      - ./login_code.txt:/app/login_code.txt:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
