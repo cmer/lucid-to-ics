@@ -13,13 +13,18 @@ const logger = createLogger('LOGIN');
 async function findEmailInput(page) {
   logger.debug('Looking for email input field');
   
+  
   return await page.evaluate(() => {
     const emailSelectors = [
       'input[type="email"]',
       'input[name*="email"]',
       'input[id*="email"]',
       'input[placeholder*="email"]',
-      'input[autocomplete*="email"]'
+      'input[autocomplete*="email"]',
+      'input[name="email"]',
+      'input#email',
+      '.email input',
+      'input[type="text"]' // Sometimes email inputs are just text type
     ];
     
     for (const selector of emailSelectors) {
@@ -39,8 +44,7 @@ async function submitEmailForm(page, email, emailSelector) {
   logger.progress('Submitting email form');
   
   // Clear and type email
-  await page.focus(emailSelector);
-  await page.keyboard.selectAll();
+  await page.click(emailSelector, { clickCount: 3 }); // Triple click to select all
   await page.type(emailSelector, email);
   
   // Trigger validation events
@@ -58,20 +62,33 @@ async function submitEmailForm(page, email, emailSelector) {
   
   // Find and click submit button
   const submitButton = await page.evaluate(() => {
-    const buttonSelectors = [
+    // Try standard selectors first
+    const standardSelectors = [
       'button[type="submit"]',
       'input[type="submit"]',
-      'button:contains("Send")',
-      'button:contains("Continue")',
-      'button:contains("Sign")',
       '.btn-primary',
       '.submit-btn'
     ];
     
-    for (const selector of buttonSelectors) {
+    for (const selector of standardSelectors) {
       const button = document.querySelector(selector);
       if (button && !button.disabled) {
         return selector;
+      }
+    }
+    
+    // Then search by text content
+    const buttons = Array.from(document.querySelectorAll('button, input[type="submit"]'));
+    for (const button of buttons) {
+      const text = button.textContent || button.value || '';
+      if (text.toLowerCase().includes('send') || 
+          text.toLowerCase().includes('continue') || 
+          text.toLowerCase().includes('sign') ||
+          text.toLowerCase().includes('submit')) {
+        // Create a unique selector for this button
+        if (button.id) return `#${button.id}`;
+        if (button.className) return `button.${button.className.split(' ')[0]}`;
+        return 'button'; // fallback
       }
     }
     return null;

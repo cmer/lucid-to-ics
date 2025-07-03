@@ -36,7 +36,7 @@ module.exports = {
   // URLs
   URLS: {
     BASE: 'https://my.lucidprivateoffices.com',
-    LOGIN: 'https://my.lucidprivateoffices.com/sign-in',
+    LOGIN: 'https://my.lucidprivateoffices.com', // Try homepage - might have login form
     BOOKINGS: 'https://my.lucidprivateoffices.com/account/bookings'
   },
 
