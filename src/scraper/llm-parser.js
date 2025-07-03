@@ -1,9 +1,15 @@
 const axios = require('axios');
+const { LLM } = require('../config/constants');
+const { llmLogger: logger } = require('../utils/logger');
 
 async function parseBookingsWithLLM(html) {
   if (!process.env.OPENROUTER_API_KEY) {
-    throw new Error('OPENROUTER_API_KEY environment variable is required');
+    const error = new Error('OPENROUTER_API_KEY environment variable is required');
+    logger.error('Missing API key', error);
+    throw error;
   }
+  
+  logger.progress(`Parsing HTML content with LLM (${html.length} characters)`);
 
   const prompt = `
 You are tasked with extracting room booking information from HTML content. 
@@ -24,7 +30,8 @@ ${html}
 `;
 
   try {
-    const model = process.env.LLM_MODEL || 'openai/gpt-4o-mini';
+    const model = process.env.LLM_MODEL || LLM.DEFAULT_MODEL;
+    logger.debug('Using LLM model', { model });
     
     const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
       model: model,
@@ -34,8 +41,8 @@ ${html}
           content: prompt
         }
       ],
-      max_tokens: 4000,
-      temperature: 0.1
+      max_tokens: LLM.MAX_TOKENS,
+      temperature: LLM.TEMPERATURE
     }, {
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -46,26 +53,30 @@ ${html}
     });
 
     const content = response.data.choices[0].message.content.trim();
+    logger.debug('LLM response received', { contentLength: content.length });
     
     // Extract JSON from the response (in case there's extra text)
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      console.warn('No JSON array found in LLM response:', content);
+      logger.warn('No JSON array found in LLM response', { content: content.substring(0, 200) + '...' });
       return [];
     }
 
     const bookings = JSON.parse(jsonMatch[0]);
-    console.log(`LLM parsed ${bookings.length} bookings`);
+    logger.success(`LLM parsed ${bookings.length} bookings successfully`);
     
     return bookings;
     
   } catch (error) {
     if (error.response) {
-      console.error('OpenRouter API error:', error.response.status, error.response.data);
+      logger.error('OpenRouter API error', {
+        status: error.response.status,
+        data: error.response.data
+      });
     } else if (error.name === 'SyntaxError') {
-      console.error('Failed to parse LLM response as JSON:', error.message);
+      logger.error('Failed to parse LLM response as JSON', error);
     } else {
-      console.error('Error calling LLM API:', error.message);
+      logger.error('Error calling LLM API', error);
     }
     
     // Return empty array on error rather than crashing
