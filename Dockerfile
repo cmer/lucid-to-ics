@@ -40,14 +40,18 @@ COPY package*.json ./
 # Install dependencies and let Puppeteer download Chrome
 RUN npm ci --omit=dev
 
-# Install Chrome using Puppeteer's new browser management
-RUN npx puppeteer browsers install chrome
-
 # Copy app source
 COPY . .
 
 # Create data directory with proper permissions
 RUN mkdir -p /app/data && chown -R node:node /app/data
+
+# Install Chrome using Puppeteer's new browser management as node user
+# This ensures Chrome is installed in the correct location for the node user
+RUN chown -R node:node /app
+USER node
+RUN npx puppeteer browsers install chrome
+USER root
 
 # Create entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
@@ -60,7 +64,7 @@ RUN chmod +x /usr/local/bin/cron-scraper.sh
 # Set environment for Docker
 ENV DOCKER_ENV=true
 
-# Switch to non-root user for most operations
+# Final ownership adjustment (Chrome is already installed as node user)
 RUN chown -R node:node /app
 
 # Expose port
