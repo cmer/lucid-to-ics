@@ -18,8 +18,8 @@ const httpAuth = (req, res, next) => {
   const authUser = process.env.HTTP_AUTH_USER;
   const authPassword = process.env.HTTP_AUTH_PASSWORD;
   
-  // Skip auth if not configured
-  if (!authUser || !authPassword) {
+  // Skip auth if username not configured
+  if (!authUser) {
     return next();
   }
   
@@ -34,7 +34,14 @@ const httpAuth = (req, res, next) => {
   const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
   const [username, password] = credentials.split(':');
   
-  if (username !== authUser || password !== authPassword) {
+  // Check username (always required)
+  if (username !== authUser) {
+    res.set('WWW-Authenticate', 'Basic realm="Lucid ICS Server"');
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  
+  // Check password only if one is configured
+  if (authPassword && password !== authPassword) {
     res.set('WWW-Authenticate', 'Basic realm="Lucid ICS Server"');
     return res.status(401).json({ error: 'Invalid credentials' });
   }

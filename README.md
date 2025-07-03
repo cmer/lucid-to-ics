@@ -1,6 +1,6 @@
 # Lucid Private Offices to ICS Calendar
 
-A web scraper that extracts room bookings from Lucid Private Offices and serves them as an ICS calendar feed.
+A web scraper that extracts your room bookings from Lucid Private Offices and serves them as an ICS calendar feed you can subscribe to.
 
 ## Features
 
@@ -61,7 +61,7 @@ A web scraper that extracts room bookings from Lucid Private Offices and serves 
 
 **Note**: After the first login, the scraper will remember your session via cookies and won't require the login process again unless the session expires.
 
-### Docker Deployment
+### Docker Deployment (recommended)
 
 1. **Build and run**:
    ```bash
@@ -75,7 +75,7 @@ A web scraper that extracts room bookings from Lucid Private Offices and serves 
    ```
 
 3. **Initial authentication**:
-   - The container will start the server immediately
+   - The container will start the server and attempt an initial scrape automatically
    - For the first scrape, go to http://localhost:3000/login and paste your magic link
    - After authentication, the scraper will run automatically on the configured schedule
 
@@ -132,14 +132,35 @@ Set up a cron job to run scraping regularly:
 
 ## HTTP Authentication
 
-When `HTTP_AUTH_USER` and `HTTP_AUTH_PASSWORD` are set, all endpoints will require HTTP Basic Authentication:
+When `HTTP_AUTH_USER` is set, all endpoints will require HTTP Basic Authentication. The password is optional:
+
+### Authentication Modes
+
+1. **Username + Password**: Both `HTTP_AUTH_USER` and `HTTP_AUTH_PASSWORD` are set
+   ```bash
+   curl -u username:password http://localhost:3000/calendar.ics
+   ```
+
+2. **Username Only**: Only `HTTP_AUTH_USER` is set (password can be anything)
+   ```bash
+   curl -u username: http://localhost:3000/calendar.ics
+   curl -u username:anypassword http://localhost:3000/calendar.ics
+   ```
+
+3. **No Authentication**: `HTTP_AUTH_USER` is not set
+   ```bash
+   curl http://localhost:3000/calendar.ics
+   ```
+
+### Calendar App Integration
 
 ```bash
-# Example with curl
-curl -u username:password http://localhost:3000/calendar.ics
-
-# Example with calendar apps - use this URL format:
+# With password
 http://username:password@localhost:3000/calendar.ics
+
+# Username only (use any password or leave blank)
+http://username:@localhost:3000/calendar.ics
+http://username:x@localhost:3000/calendar.ics
 ```
 
 ## Troubleshooting

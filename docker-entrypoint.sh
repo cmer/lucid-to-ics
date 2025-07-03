@@ -48,6 +48,13 @@ cron
 # Change to node user for the application
 su node -c "cd /app && npm start" &
 
+# Wait a moment for server to start, then run initial scrape
+echo "⏳ Starting server and preparing initial scrape..."
+sleep 5
+
+echo "🔄 Running initial scrape..."
+su node -c "cd /app && npm run scrape" &
+
 # Keep the container running and show logs
 echo "✅ Services started. Watching logs..."
 echo "📊 Server logs:"
