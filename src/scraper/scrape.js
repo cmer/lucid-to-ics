@@ -494,6 +494,145 @@ class LucidScraper {
     }
   }
 
+  async extractBookingsSection() {
+    console.log('Extracting bookings section from page...');
+    
+    try {
+      // Try to find the specific bookings section
+      const bookingsSection = await this.page.evaluate(() => {
+        // Search strategies for finding bookings container
+        const searchTerms = [
+          'my bookings',
+          'bookings',
+          'reservations', 
+          'my reservations',
+          'upcoming',
+          'past bookings'
+        ];
+        
+        // Strategy 1: Find elements by text content
+        for (const term of searchTerms) {
+          const elements = Array.from(document.querySelectorAll('*')).filter(el => 
+            el.textContent && el.textContent.toLowerCase().includes(term) && 
+            el.children.length > 0 // Has child elements (likely a container)
+          );
+          
+          if (elements.length > 0) {
+            // Find the most likely container (largest one with booking-like content)
+            const container = elements.reduce((largest, current) => 
+              current.innerHTML.length > largest.innerHTML.length ? current : largest
+            );
+            
+            console.log(`Found bookings container via text "${term}":`, container.tagName, container.className);
+            return {
+              html: container.outerHTML,
+              method: `text-search-${term}`,
+              size: container.outerHTML.length
+            };
+          }
+        }
+        
+        // Strategy 2: Look for common booking UI patterns
+        const selectors = [
+          '[class*="booking"]',
+          '[class*="reservation"]', 
+          '[class*="appointment"]',
+          '[class*="event"]',
+          '[id*="booking"]',
+          '[id*="reservation"]',
+          '.bookings',
+          '.reservations',
+          '#bookings',
+          '#reservations'
+        ];
+        
+        for (const selector of selectors) {
+          const elements = document.querySelectorAll(selector);
+          if (elements.length > 0) {
+            // Find the container with the most content
+            let bestElement = null;
+            let maxSize = 0;
+            
+            elements.forEach(el => {
+              const size = el.innerHTML.length;
+              if (size > maxSize) {
+                maxSize = size;
+                bestElement = el;
+              }
+            });
+            
+            if (bestElement && maxSize > 100) { // Minimum size threshold
+              console.log(`Found bookings container via selector "${selector}":`, bestElement.tagName, bestElement.className);
+              return {
+                html: bestElement.outerHTML,
+                method: `selector-${selector}`,
+                size: bestElement.outerHTML.length
+              };
+            }
+          }
+        }
+        
+        // Strategy 3: Look for main content area (fallback)
+        const mainSelectors = ['main', '.main', '#main', '.content', '#content', '.container'];
+        for (const selector of mainSelectors) {
+          const element = document.querySelector(selector);
+          if (element && element.innerHTML.length > 1000) {
+            console.log(`Using main content area as fallback:`, selector);
+            return {
+              html: element.outerHTML,
+              method: `main-content-${selector}`,
+              size: element.outerHTML.length
+            };
+          }
+        }
+        
+        return null; // No specific section found
+      });
+      
+      if (bookingsSection) {
+        console.log(`✅ Extracted bookings section using method: ${bookingsSection.method}`);
+        console.log(`📏 Section size: ${bookingsSection.size} characters`);
+        
+        // Clean up the HTML by removing scripts, styles, and other non-content elements
+        const cleanHtml = await this.page.evaluate((html) => {
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html;
+          
+          // Remove script tags
+          tempDiv.querySelectorAll('script').forEach(el => el.remove());
+          
+          // Remove style tags  
+          tempDiv.querySelectorAll('style').forEach(el => el.remove());
+          
+          // Remove comment nodes
+          const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_COMMENT);
+          const comments = [];
+          let node;
+          while (node = walker.nextNode()) {
+            comments.push(node);
+          }
+          comments.forEach(comment => comment.remove());
+          
+          return tempDiv.innerHTML;
+        }, bookingsSection.html);
+        
+        console.log(`🧹 Cleaned HTML size: ${cleanHtml.length} characters`);
+        return {
+          html: cleanHtml,
+          method: bookingsSection.method,
+          originalSize: bookingsSection.size,
+          cleanedSize: cleanHtml.length
+        };
+      }
+      
+      return null;
+      
+    } catch (error) {
+      console.warn('Error extracting bookings section:', error.message);
+      return null;
+    }
+  }
+
   async scrapeBookings() {
     console.log('Navigating to bookings page...');
     
@@ -531,11 +670,22 @@ class LucidScraper {
         console.log('No specific booking content detected, proceeding with full page...');
       }
 
-      // Get the full page HTML after it's loaded
-      const html = await this.page.content();
-      console.log(`Page HTML captured (${html.length} characters), sending to LLM for parsing...`);
+      // Try to extract only the bookings section first
+      const bookingsSection = await this.extractBookingsSection();
       
-      return html;
+      if (bookingsSection) {
+        const fullPageSize = (await this.page.content()).length;
+        const reduction = ((fullPageSize - bookingsSection.cleanedSize) / fullPageSize * 100).toFixed(1);
+        console.log(`🎯 Using optimized bookings section (${reduction}% size reduction)`);
+        console.log(`📊 Full page: ${fullPageSize} chars → Bookings section: ${bookingsSection.cleanedSize} chars`);
+        return bookingsSection.html;
+      } else {
+        // Fallback to full page
+        console.log('⚠️  Could not extract specific bookings section, using full page');
+        const html = await this.page.content();
+        console.log(`📄 Full page HTML: ${html.length} characters`);
+        return html;
+      }
       
     } catch (error) {
       console.error('Error scraping bookings:', error.message);
