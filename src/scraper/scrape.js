@@ -72,7 +72,7 @@ class LucidScraper {
       await navigateToUrl(this.page, URLS.BOOKINGS);
       
       // Wait for page to load
-      await this.page.waitForTimeout(TIMEOUTS.PAGE_LOAD_WAIT);
+      await new Promise(resolve => setTimeout(resolve, TIMEOUTS.PAGE_LOAD_WAIT));
       
       const isLoggedIn = await verifyLoginStatus(this.page);
       
@@ -98,7 +98,7 @@ class LucidScraper {
       await navigateToUrl(this.page, URLS.LOGIN);
       
       // Wait for page to load
-      await this.page.waitForTimeout(TIMEOUTS.PAGE_LOAD_WAIT);
+      await new Promise(resolve => setTimeout(resolve, TIMEOUTS.PAGE_LOAD_WAIT));
       
       const email = process.env.LUCID_EMAIL;
       if (!email) {
@@ -163,7 +163,7 @@ class LucidScraper {
 
       // Wait for the page to fully load (Nuxt.js SPA)
       logger.progress('Waiting for page to load');
-      await this.page.waitForTimeout(TIMEOUTS.PAGE_LOAD_WAIT);
+      await new Promise(resolve => setTimeout(resolve, TIMEOUTS.PAGE_LOAD_WAIT));
       
       // Wait for booking content to appear
       logger.progress('Looking for booking content');

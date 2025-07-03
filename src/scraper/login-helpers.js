@@ -14,7 +14,7 @@ async function findEmailInput(page) {
   logger.debug('Looking for email input field');
   
   // Wait a bit for page to be fully ready
-  await page.waitForTimeout(1000);
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
   return await page.evaluate(() => {
     const emailSelectors = [
@@ -60,7 +60,7 @@ async function submitEmailForm(page, email, emailSelector) {
   }, emailSelector);
   
   // Wait for button to become enabled
-  await page.waitForTimeout(1000);
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
   // Find and click submit button
   const submitButton = await page.evaluate(() => {
@@ -161,7 +161,7 @@ async function processMagicLink(page, magicLinkUrl) {
     logger.info('Navigated to magic link URL');
     
     // Wait for redirect/authentication to complete
-    await page.waitForTimeout(TIMEOUTS.FORM_SUBMIT_WAIT);
+    await new Promise(resolve => setTimeout(resolve, TIMEOUTS.FORM_SUBMIT_WAIT));
     
     // Check if we're now logged in
     const currentUrl = page.url();
@@ -173,7 +173,7 @@ async function processMagicLink(page, magicLinkUrl) {
     }
     
     // Wait a bit more for potential redirects
-    await page.waitForTimeout(5000);
+    await new Promise(resolve => setTimeout(resolve, 5000));
     const finalUrl = page.url();
     
     if (finalUrl.includes('/account') || finalUrl.includes('/dashboard')) {
