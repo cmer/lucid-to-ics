@@ -13,6 +13,8 @@ const logger = createLogger('LOGIN');
 async function findEmailInput(page) {
   logger.debug('Looking for email input field');
   
+  // Wait a bit for page to be fully ready
+  await page.waitForTimeout(1000);
   
   return await page.evaluate(() => {
     const emailSelectors = [

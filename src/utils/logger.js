@@ -6,9 +6,8 @@ class Logger {
   }
 
   _formatMessage(level, message, data = null) {
-    const timestamp = new Date().toISOString();
     const logData = data ? ` | ${JSON.stringify(data)}` : '';
-    return `[${timestamp}] [${level}] [${this.module}] ${message}${logData}`;
+    return `${message}${logData}`;
   }
 
   info(message, data = null) {
@@ -39,7 +38,7 @@ class Logger {
   }
 
   progress(message, data = null) {
-    console.log(this._formatMessage('PROGRESS', `🔄 ${message}`, data));
+    console.log(this._formatMessage('PROGRESS', `${message}`, data));
   }
 }
 
