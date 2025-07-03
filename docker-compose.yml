@@ -11,9 +11,12 @@ services:
       - LUCID_EMAIL=${LUCID_EMAIL}
       - LLM_MODEL=${LLM_MODEL:-openai/gpt-4o-mini}
       - PORT=3000
+      - SCRAPER_INTERVAL=${SCRAPER_INTERVAL:-240}
+      - HTTP_AUTH_USER=${HTTP_AUTH_USER}
+      - HTTP_AUTH_PASSWORD=${HTTP_AUTH_PASSWORD}
     volumes:
       - ./data:/app/data
-      - ./login_code.txt:/app/login_code.txt:ro
+      - ./login_url.txt:/app/login_url.txt:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]

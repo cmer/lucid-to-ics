@@ -29,7 +29,10 @@ A web scraper that extracts room bookings from Lucid Private Offices and serves 
    - `OPENROUTER_API_KEY`: Your OpenRouter API key
    - `LUCID_EMAIL`: Your Lucid Private Offices email
    - `LLM_MODEL`: Model to use for parsing (default: openai/gpt-4o-mini)
+   - `SCRAPER_INTERVAL`: Scraper interval in minutes (default: 240 = 4 hours)
    - `PORT`: Server port (default: 3000)
+   - `HTTP_AUTH_USER`: HTTP Basic Auth username (optional)
+   - `HTTP_AUTH_PASSWORD`: HTTP Basic Auth password (optional)
 
 ## Usage
 
@@ -65,20 +68,32 @@ A web scraper that extracts room bookings from Lucid Private Offices and serves 
    docker-compose up -d
    ```
 
-2. **For initial authentication**:
-   - Run `docker-compose exec lucid-ics npm run scrape`
-   - Follow the same login process using the web form at http://localhost:3000/login
+2. **Configure scraper interval** (optional):
+   ```bash
+   # Set custom interval in minutes (default: 240 minutes = 4 hours)
+   SCRAPER_INTERVAL=120 docker-compose up -d  # Run every 2 hours
+   ```
+
+3. **Initial authentication**:
+   - The container will start the server immediately
+   - For the first scrape, go to http://localhost:3000/login and paste your magic link
+   - After authentication, the scraper will run automatically on the configured schedule
+
+4. **View logs**:
+   ```bash
+   docker-compose logs -f lucid-ics
+   ```
 
 ### Automated Scraping
 
 Set up a cron job to run scraping regularly:
 
 ```bash
-# Add to crontab (runs every 2 hours during business hours)
-0 8-18/2 * * 1-5 cd /path/to/lucid_to_ics && npm run scrape
+# Add to crontab (runs every 4 hours)
+0 */4 * * * cd /path/to/lucid_to_ics && npm run scrape
 ```
 
-**Note**: Automated scraping works best after the initial login, as the scraper will use saved cookies for authentication.
+**Note**: When using Docker, automated scraping is built-in and configured via the `SCRAPER_INTERVAL` environment variable.
 
 ## API Endpoints
 
@@ -115,6 +130,18 @@ Set up a cron job to run scraping regularly:
 7. Scrapes booking data and parses with LLM
 8. Saves data to JSON and serves as ICS format
 
+## HTTP Authentication
+
+When `HTTP_AUTH_USER` and `HTTP_AUTH_PASSWORD` are set, all endpoints will require HTTP Basic Authentication:
+
+```bash
+# Example with curl
+curl -u username:password http://localhost:3000/calendar.ics
+
+# Example with calendar apps - use this URL format:
+http://username:password@localhost:3000/calendar.ics
+```
+
 ## Troubleshooting
 
 - **Login issues**: Make sure `LUCID_EMAIL` is correct and check email for magic link
@@ -123,3 +150,4 @@ Set up a cron job to run scraping regularly:
 - **Session expired**: If scraper asks for login again, repeat the magic link process
 - **Docker issues**: Ensure proper permissions on data directory
 - **LLM parsing errors**: Check `OPENROUTER_API_KEY` is valid and has credits
+- **Authentication errors**: If using HTTP auth, ensure `HTTP_AUTH_USER` and `HTTP_AUTH_PASSWORD` are set correctly

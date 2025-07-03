@@ -19,12 +19,27 @@ class LucidScraper {
     
     // Use the working configuration (system Chrome)
     try {
-      this.browser = await puppeteer.launch({
-        executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      // Use different Chrome paths for different environments
+      const isDocker = process.env.NODE_ENV === 'production' || process.env.DOCKER_ENV;
+      const chromeConfig = {
         headless: "new",
-        args: ['--no-sandbox'],
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
         timeout: 30000
-      });
+      };
+      
+      if (!isDocker) {
+        // Local development - use system Chrome if available
+        chromeConfig.executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+      } else {
+        // In Docker, try to use installed Chrome first, fall back to bundled Chromium
+        const fs = require('fs');
+        if (fs.existsSync('/usr/bin/google-chrome-stable')) {
+          chromeConfig.executablePath = '/usr/bin/google-chrome-stable';
+        }
+        // If Chrome not available, Puppeteer will use bundled Chromium (default)
+      }
+      
+      this.browser = await puppeteer.launch(chromeConfig);
       
       console.log('Browser launched successfully');
       

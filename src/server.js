@@ -13,6 +13,38 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// HTTP Basic Authentication middleware
+const httpAuth = (req, res, next) => {
+  const authUser = process.env.HTTP_AUTH_USER;
+  const authPassword = process.env.HTTP_AUTH_PASSWORD;
+  
+  // Skip auth if not configured
+  if (!authUser || !authPassword) {
+    return next();
+  }
+  
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    res.set('WWW-Authenticate', 'Basic realm="Lucid ICS Server"');
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  const base64Credentials = authHeader.split(' ')[1];
+  const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+  const [username, password] = credentials.split(':');
+  
+  if (username !== authUser || password !== authPassword) {
+    res.set('WWW-Authenticate', 'Basic realm="Lucid ICS Server"');
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  
+  next();
+};
+
+// Apply authentication to all routes
+app.use(httpAuth);
+
 // Health check endpoint
 app.get('/', (req, res) => {
   res.json({
