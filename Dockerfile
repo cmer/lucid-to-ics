@@ -1,4 +1,4 @@
-FROM node:18-bullseye-slim
+FROM --platform=linux/amd64 node:18-bullseye-slim
 
 # Install dependencies for Puppeteer and cron
 RUN apt-get update && apt-get install -y \
@@ -19,19 +19,17 @@ RUN apt-get update && apt-get install -y \
     libgbm1 \
     libxkbcommon0 \
     libatspi2.0-0 \
+    libnspr4 \
+    libnss3 \
+    libxss1 \
+    libasound2 \
+    libxtst6 \
+    libatspi2.0-0 \
+    libgtk-3-0 \
+    libgdk-pixbuf2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Chrome based on architecture
-RUN ARCH=$(dpkg --print-architecture) && \
-    if [ "$ARCH" = "amd64" ]; then \
-        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg && \
-        sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' && \
-        apt-get update && \
-        apt-get install -y google-chrome-stable && \
-        rm -rf /var/lib/apt/lists/*; \
-    else \
-        echo "Chrome not available for $ARCH architecture, using Puppeteer bundled Chromium"; \
-    fi
+# Note: Chrome will be installed by Puppeteer after npm install
 
 # Create app directory
 WORKDIR /app
@@ -39,9 +37,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies without Chromium download (we'll handle browser separately)
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+# Install dependencies and let Puppeteer download Chrome
 RUN npm ci --omit=dev
+
+# Install Chrome using Puppeteer's new browser management
+RUN npx puppeteer browsers install chrome
 
 # Copy app source
 COPY . .

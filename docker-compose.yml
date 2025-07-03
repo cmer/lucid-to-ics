@@ -1,6 +1,9 @@
 services:
   lucid-ics:
-    build: .
+    build: 
+      context: .
+      platforms:
+        - linux/amd64
     ports:
       - "3000:3000"
     environment:

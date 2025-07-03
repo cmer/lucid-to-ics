@@ -24,15 +24,12 @@ function getChromeConfig() {
     if (fs.existsSync(PATHS.CHROME_EXECUTABLE_MAC)) {
       config.executablePath = PATHS.CHROME_EXECUTABLE_MAC;
       logger.debug('Using macOS Chrome executable');
+    } else {
+      logger.debug('Using Puppeteer managed Chrome');
     }
   } else {
-    // In Docker, try to use installed Chrome first, fall back to bundled Chromium
-    if (fs.existsSync(PATHS.CHROME_EXECUTABLE_LINUX)) {
-      config.executablePath = PATHS.CHROME_EXECUTABLE_LINUX;
-      logger.debug('Using Linux Chrome executable');
-    } else {
-      logger.debug('Using Puppeteer bundled Chromium');
-    }
+    // In Docker, let Puppeteer use its managed Chrome installation
+    logger.debug('Using Puppeteer managed Chrome in Docker');
   }
   
   return config;
